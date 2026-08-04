@@ -5,6 +5,11 @@ dist/
 .DS_Store
 storybook-static/
 
-# Live conformance-harness credentials. Real tokens, never committed --
+# Live conformance-harness credentials. Real tokens, never committed...
 # this repo is public. See harness_credentials.example.json for the shape.
 harness_credentials.json
+
+# Agent scratch: worktrees live under .claude/worktrees, and the
+# subagent-driven-development ledger lives under .superpowers/sdd.
+.claude/
+.superpowers/
