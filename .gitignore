@@ -13,3 +13,4 @@ harness_credentials.json
 # subagent-driven-development ledger lives under .superpowers/sdd.
 .claude/
 .superpowers/
+.local-dev/
