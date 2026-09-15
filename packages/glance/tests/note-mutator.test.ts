@@ -94,6 +94,55 @@ describe('createDiscussion', () => {
   });
 });
 
+describe('createPositionedDiscussion', () => {
+  test('posts body and position as nested JSON', async () => {
+    const calls = stub(201, {
+      id: 'disc1',
+      notes: [{ id: 11, body: 'nice catch', resolvable: true, resolved: false }],
+    });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    const position = {
+      position_type: 'text' as const,
+      new_path: 'src/foo.ts',
+      new_line: 42,
+      old_path: 'src/foo.ts',
+      old_line: 40,
+      base_sha: 'b',
+      start_sha: 's',
+      head_sha: 'h',
+    };
+    const created = await m.createPositionedDiscussion(42, 9, 'nice catch', position);
+
+    expect(created.id).toBe('disc1');
+    expect(calls[0]!.url).toBe(
+      'https://gitlab.example.com/api/v4/projects/42/merge_requests/9/discussions',
+    );
+    expect(calls[0]!.method).toBe('POST');
+    expect(calls[0]!.headers['Content-Type']).toBe('application/json');
+    expect(calls[0]!.headers['PRIVATE-TOKEN']).toBe('tok');
+    expect(JSON.parse(String(calls[0]!.body))).toEqual({
+      body: 'nice catch',
+      position,
+    });
+  });
+
+  test('throws with status on failure', async () => {
+    stub(422, { message: 'position out of range' });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    const position = {
+      position_type: 'text' as const,
+      new_path: 'src/foo.ts',
+      new_line: 42,
+      base_sha: 'b',
+      start_sha: 's',
+      head_sha: 'h',
+    };
+    await expect(
+      m.createPositionedDiscussion(42, 9, 'nice catch', position),
+    ).rejects.toThrow(/422/);
+  });
+});
+
 describe('uploadFile', () => {
   test('posts multipart to /uploads and returns the markdown path', async () => {
     const calls = stub(201, {

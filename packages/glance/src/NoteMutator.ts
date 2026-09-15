@@ -39,6 +39,14 @@ export interface DiffRefs {
   head_sha: string;
 }
 
+export interface TextPosition extends DiffRefs {
+  position_type: "text";
+  new_path: string;
+  new_line: number;
+  old_path?: string;
+  old_line?: number;
+}
+
 export interface UploadedFile {
   alt: string;
   url: string;
@@ -139,6 +147,49 @@ export class NoteMutator {
       const text = await res.text().catch(() => "");
       throw new Error(
         `createDiscussion failed: ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`,
+      );
+    }
+    return (await res.json()) as CreatedDiscussion;
+  }
+
+  /**
+   * Create a positioned (inline) discussion anchored to a line in the diff.
+   * `position` must be sent as a nested JSON object, not bracketed form
+   * fields: GitLab silently drops the position (and degrades to a general
+   * note) when the nesting isn't JSON.
+   */
+  async createPositionedDiscussion(
+    projectId: number,
+    mrIid: number,
+    body: string,
+    position: TextPosition,
+  ): Promise<CreatedDiscussion> {
+    const path = `/api/v4/projects/${projectId}/merge_requests/${mrIid}/discussions`;
+    const url = `${this.baseURL}${path}`;
+    const started = performance.now();
+
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "PRIVATE-TOKEN": this.token,
+      },
+      body: JSON.stringify({ body, position }),
+    });
+
+    safeEmit(this.onRequest, {
+      op: 'noteMutator.createPositionedDiscussion',
+      transport: 'rest',
+      method: 'POST',
+      path,
+      durationMs: performance.now() - started,
+      status: res.status,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(
+        `createPositionedDiscussion failed: ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`,
       );
     }
     return (await res.json()) as CreatedDiscussion;
