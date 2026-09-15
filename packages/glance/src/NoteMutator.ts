@@ -9,6 +9,7 @@
  *   DELETE /api/v4/projects/:id/merge_requests/:mrIid/notes/:noteId
  *   POST   /api/v4/projects/:id/merge_requests/:mrIid/discussions
  *   POST   /api/v4/projects/:id/uploads
+ *   GET    /api/v4/projects/:id/merge_requests/:mrIid
  */
 
 import { type OnRequestHook, safeEmit } from './instrumentation.ts';
@@ -30,6 +31,12 @@ export interface CreatedNote {
 export interface CreatedDiscussion {
   id: string;
   notes: CreatedNote[];
+}
+
+export interface DiffRefs {
+  base_sha: string;
+  start_sha: string;
+  head_sha: string;
 }
 
 export interface UploadedFile {
@@ -135,6 +142,46 @@ export class NoteMutator {
       );
     }
     return (await res.json()) as CreatedDiscussion;
+  }
+
+  /**
+   * Fetch the MR's current `diff_refs`, needed to anchor a positioned
+   * discussion (see `createPositionedDiscussion`). GitLab omits `diff_refs`
+   * until the MR has a diff to anchor against.
+   */
+  async fetchDiffRefs(projectId: number, mrIid: number): Promise<DiffRefs> {
+    const path = `/api/v4/projects/${projectId}/merge_requests/${mrIid}`;
+    const url = `${this.baseURL}${path}`;
+    const started = performance.now();
+
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { "PRIVATE-TOKEN": this.token },
+    });
+
+    safeEmit(this.onRequest, {
+      op: 'noteMutator.fetchDiffRefs',
+      transport: 'rest',
+      method: 'GET',
+      path,
+      durationMs: performance.now() - started,
+      status: res.status,
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(
+        `fetchDiffRefs failed: ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`,
+      );
+    }
+
+    const data = (await res.json()) as { diff_refs: DiffRefs | null };
+    if (!data.diff_refs) {
+      throw new Error(
+        `fetchDiffRefs: merge request !${mrIid} in project ${projectId} has no diff_refs yet`,
+      );
+    }
+    return data.diff_refs;
   }
 
   /** Edit the body of an existing note. */

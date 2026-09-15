@@ -37,6 +37,37 @@ function stub(status: number, payload: unknown): Captured[] {
   return calls;
 }
 
+describe('fetchDiffRefs', () => {
+  test('gets the MR and returns diff_refs', async () => {
+    const calls = stub(200, {
+      diff_refs: { base_sha: 'b', start_sha: 's', head_sha: 'h' },
+    });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    const refs = await m.fetchDiffRefs(42, 9);
+
+    expect(refs).toEqual({ base_sha: 'b', start_sha: 's', head_sha: 'h' });
+    expect(calls[0]!.url).toBe(
+      'https://gitlab.example.com/api/v4/projects/42/merge_requests/9',
+    );
+    expect(calls[0]!.method).toBe('GET');
+    expect(calls[0]!.headers['PRIVATE-TOKEN']).toBe('tok');
+  });
+
+  test('throws a descriptive error when diff_refs is missing', async () => {
+    stub(200, { diff_refs: null });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    await expect(m.fetchDiffRefs(42, 9)).rejects.toThrow(
+      /merge request !9 in project 42 has no diff_refs/,
+    );
+  });
+
+  test('throws with status on failure', async () => {
+    stub(404, { message: 'not found' });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    await expect(m.fetchDiffRefs(42, 9)).rejects.toThrow(/404/);
+  });
+});
+
 describe('createDiscussion', () => {
   test('posts to /discussions and returns the thread id', async () => {
     const calls = stub(201, {
