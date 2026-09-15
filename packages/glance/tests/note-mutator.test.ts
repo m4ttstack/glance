@@ -141,6 +141,45 @@ describe('createPositionedDiscussion', () => {
       m.createPositionedDiscussion(42, 9, 'nice catch', position),
     ).rejects.toThrow(/422/);
   });
+
+  const notePosition = {
+    position_type: 'text' as const,
+    new_path: 'src/foo.ts',
+    new_line: 42,
+    base_sha: 'b',
+    start_sha: 's',
+    head_sha: 'h',
+  };
+
+  test('surfaces type "DiffNote" as-is, the caller\'s signal a position landed', async () => {
+    stub(201, {
+      id: 'disc1',
+      notes: [{ id: 11, body: 'nice catch', resolvable: true, resolved: false, type: 'DiffNote' }],
+    });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    const created = await m.createPositionedDiscussion(42, 9, 'nice catch', notePosition);
+    expect(created.notes[0]!.type).toBe('DiffNote');
+  });
+
+  test('keeps an explicit null type as null', async () => {
+    stub(201, {
+      id: 'disc2',
+      notes: [{ id: 12, body: 'nice catch', resolvable: true, resolved: false, type: null }],
+    });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    const created = await m.createPositionedDiscussion(42, 9, 'nice catch', notePosition);
+    expect(created.notes[0]!.type).toBeNull();
+  });
+
+  test('normalizes a missing type field to null, never undefined', async () => {
+    stub(201, {
+      id: 'disc3',
+      notes: [{ id: 13, body: 'nice catch', resolvable: true, resolved: false }],
+    });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    const created = await m.createPositionedDiscussion(42, 9, 'nice catch', notePosition);
+    expect(created.notes[0]!.type).toBeNull();
+  });
 });
 
 describe('uploadFile', () => {

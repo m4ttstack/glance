@@ -26,6 +26,8 @@ export interface CreatedNote {
   created_at: string;
   resolvable: boolean | null;
   resolved: boolean | null;
+  /** "DiffNote" for a positioned note; null for a general note (or absent from the response). */
+  type: string | null;
 }
 
 export interface CreatedDiscussion {
@@ -192,7 +194,11 @@ export class NoteMutator {
         `createPositionedDiscussion failed: ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`,
       );
     }
-    return (await res.json()) as CreatedDiscussion;
+    const discussion = (await res.json()) as CreatedDiscussion;
+    return {
+      ...discussion,
+      notes: discussion.notes.map((note) => ({ ...note, type: note.type ?? null })),
+    };
   }
 
   /**
