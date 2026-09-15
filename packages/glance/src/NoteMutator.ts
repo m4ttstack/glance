@@ -14,6 +14,11 @@
 
 import { type OnRequestHook, safeEmit } from './instrumentation.ts';
 
+/** GitLab omits `type` on a general note; every CreatedNote producer must still return `null`, not `undefined`. */
+function normalizeNoteType(note: CreatedNote): CreatedNote {
+  return { ...note, type: note.type ?? null };
+}
+
 export interface CreatedNote {
   id: number;
   body: string;
@@ -109,7 +114,7 @@ export class NoteMutator {
       );
     }
 
-    return (await res.json()) as CreatedNote;
+    return normalizeNoteType((await res.json()) as CreatedNote);
   }
 
   /**
@@ -151,7 +156,8 @@ export class NoteMutator {
         `createDiscussion failed: ${res.status} ${res.statusText}${text ? `: ${text}` : ""}`,
       );
     }
-    return (await res.json()) as CreatedDiscussion;
+    const discussion = (await res.json()) as CreatedDiscussion;
+    return { ...discussion, notes: discussion.notes.map(normalizeNoteType) };
   }
 
   /**
@@ -195,10 +201,7 @@ export class NoteMutator {
       );
     }
     const discussion = (await res.json()) as CreatedDiscussion;
-    return {
-      ...discussion,
-      notes: discussion.notes.map((note) => ({ ...note, type: note.type ?? null })),
-    };
+    return { ...discussion, notes: discussion.notes.map(normalizeNoteType) };
   }
 
   /**

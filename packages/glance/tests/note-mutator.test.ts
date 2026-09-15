@@ -37,6 +37,15 @@ function stub(status: number, payload: unknown): Captured[] {
   return calls;
 }
 
+describe('createNote', () => {
+  test('normalizes a missing type field to null', async () => {
+    stub(201, { id: 5, body: 'hi', resolvable: null, resolved: null });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    const created = await m.createNote(42, 9, 'hi');
+    expect(created.type).toBeNull();
+  });
+});
+
 describe('fetchDiffRefs', () => {
   test('gets the MR and returns diff_refs', async () => {
     const calls = stub(200, {
@@ -91,6 +100,16 @@ describe('createDiscussion', () => {
     stub(403, { message: 'forbidden' });
     const m = new NoteMutator('https://gitlab.example.com', 'tok');
     await expect(m.createDiscussion(42, 9, 'hi')).rejects.toThrow(/403/);
+  });
+
+  test('normalizes a note missing type to null', async () => {
+    stub(201, {
+      id: 'abc123',
+      notes: [{ id: 7, body: 'hi', resolvable: true, resolved: false }],
+    });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    const created = await m.createDiscussion(42, 9, 'hi');
+    expect(created.notes[0]!.type).toBeNull();
   });
 });
 
