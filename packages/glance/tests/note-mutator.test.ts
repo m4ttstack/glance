@@ -145,6 +145,30 @@ describe('createPositionedDiscussion', () => {
     });
   });
 
+  test('posts a removed-line position with old_line and no new_line', async () => {
+    const calls = stub(201, {
+      id: 'disc1',
+      notes: [{ id: 11, body: 'stale comment', resolvable: true, resolved: false }],
+    });
+    const m = new NoteMutator('https://gitlab.example.com', 'tok');
+    const position = {
+      position_type: 'text' as const,
+      new_path: 'src/foo.ts',
+      old_path: 'src/foo.ts',
+      old_line: 40,
+      base_sha: 'b',
+      start_sha: 's',
+      head_sha: 'h',
+    };
+    const created = await m.createPositionedDiscussion(42, 9, 'stale comment', position);
+
+    expect(created.id).toBe('disc1');
+    expect(JSON.parse(String(calls[0]!.body))).toEqual({
+      body: 'stale comment',
+      position,
+    });
+  });
+
   test('throws with status on failure', async () => {
     stub(422, { message: 'position out of range' });
     const m = new NoteMutator('https://gitlab.example.com', 'tok');
@@ -152,6 +176,7 @@ describe('createPositionedDiscussion', () => {
       position_type: 'text' as const,
       new_path: 'src/foo.ts',
       new_line: 42,
+      old_path: 'src/foo.ts',
       base_sha: 'b',
       start_sha: 's',
       head_sha: 'h',
@@ -165,6 +190,7 @@ describe('createPositionedDiscussion', () => {
     position_type: 'text' as const,
     new_path: 'src/foo.ts',
     new_line: 42,
+    old_path: 'src/foo.ts',
     base_sha: 'b',
     start_sha: 's',
     head_sha: 'h',

@@ -46,13 +46,15 @@ export interface DiffRefs {
   head_sha: string;
 }
 
-export interface TextPosition extends DiffRefs {
+export type TextPosition = DiffRefs & {
   position_type: "text";
   new_path: string;
-  new_line: number;
-  old_path?: string;
-  old_line?: number;
-}
+  old_path: string;
+} & (
+    | { new_line: number; old_line?: never }
+    | { old_line: number; new_line?: never }
+    | { old_line: number; new_line: number }
+  );
 
 export interface UploadedFile {
   alt: string;
