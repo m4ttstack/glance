@@ -17,7 +17,7 @@ the package directory:
 - `packages/glance`: `bun test` (Bun's runner), `bun run check-types` (covers
   `src` and `tests/live`), `bun run check:node` (builds, then
   `node tests/node-smoke.mjs`, the Node-vs-Bun parity check), `bun run build`
-  (nine explicit entrypoints plus `tsc -p tsconfig.build.json`).
+  (twelve explicit entrypoints plus `tsc -p tsconfig.build.json`).
 - `packages/glance-react`: `bun run test` (vitest, happy-dom; Storybook
   interaction tests run through `@storybook/addon-vitest`), `bun run lint`
   (`eslint . --quiet`), `bun run format:check`, `bun run build` (tsc, vite,
