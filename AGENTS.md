@@ -61,9 +61,9 @@ a behaviour change needs a bump before the consumer can see it.
 - **0.27.0, unresolved-thread blocker.** `hasUnresolvedDiscussions` in
   `packages/glance/src/MRDashboard.ts` keys off the GitLab mergeability check
   `DISCUSSIONS_NOT_RESOLVED` first (`FAILED` blocks, `INACTIVE` and `SUCCESS`
-  clear) and falls back to the raw thread count only when no check is
-  present; a null `unresolvedThreadCount` means "not a blocker", never
-  "unknown, so blocked".
+  clear) and falls back to the raw thread count whenever the check is
+  anything else, including `CHECKING`, `WARNING`, or absent; a null
+  `unresolvedThreadCount` means "not a blocker", never "unknown, so blocked".
 - **0.26.0, `excludeTargetBranches`.** The option on the MR read options is
   exact names, no wildcards: expand a glob before passing it. GitLab applies
   it server-side, so excluded MRs' fields (approval state included) are never
